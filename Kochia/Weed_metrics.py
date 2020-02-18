@@ -6,6 +6,7 @@ import pandas as pd
 from operator import truediv
 import h5py
 import pickle
+from scipy import stats
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score, cohen_kappa_score, confusion_matrix
 
 from networks import *
@@ -184,3 +185,14 @@ plt.figure()
 plot_confusion_matrix(means, stds, classescf=classes_list)
 dataset = 'WEED'
 plt.savefig('MatrixConfusion_' + dataset + 'hyper3dnet.png', dpi=1200)
+
+# Box-plot
+with open('t-test/cvf1hyper3dnet', 'rb') as f:
+    cvf1 = pickle.load(f)
+with open('t-test/cvf1hyper3dnet_pruned', 'rb') as f:
+    cvf2 = pickle.load(f)
+
+df = pd.DataFrame({'Hyper3dNET': cvf1, 'Hyper3dNET_Pruned': cvf2})
+df[['Hyper3dNET', 'Hyper3dNET_Pruned']].plot(kind='box')
+print(stats.ttest_rel(df['Hyper3dNET'], df['Hyper3dNET_Pruned']))
+plt.savefig('Box_' + dataset + '.png', dpi=1200)
