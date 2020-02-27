@@ -139,9 +139,9 @@ Plot confusion matrix
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-with open('meanshyper3dnet10', 'rb') as f:
+with open('Kochia/meanshyper3dnet10', 'rb') as f:
     means = pickle.load(f)
-with open('stdshyper3dnet10', 'rb') as f:
+with open('Kochia/stdshyper3dnet10', 'rb') as f:
     stds = pickle.load(f)
 
 
