@@ -12,7 +12,7 @@ import gdal
 
 # Get dataset foler
 basepath = os.getcwd()[:-13 - 14]
-orig_path_train = basepath + '\\KochiaHyperspectralImages\\DatasetMerge\\*'
+orig_path_train = basepath + '\\KochiaHyperspectralImages\\DatasetMerge\\*.bip'
 
 # Get the list of addresses
 addri = sorted(glob.glob(orig_path_train))
