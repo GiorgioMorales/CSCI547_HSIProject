@@ -5,25 +5,28 @@ import numpy as np
 import h5py
 import pickle
 import gdal
+import cv2
 
 #####################################################################
 #   Create list of image addresses and labels
 #####################################################################
 
 # Get dataset foler
-basepath = os.getcwd()[:-13 - 14]
-orig_path_train = basepath + '\\KochiaHyperspectralImages\\DatasetMerge\\*.bip'
+basepath = os.getcwd()
+print(basepath)
+orig_path_train = basepath + '/Dataset/*.bip'
 
 # Get the list of addresses
 addri = sorted(glob.glob(orig_path_train))
+print(addri)
 labels = []
 
 # Set classes
 for addr in addri:
     yc = 0
-    if 'Fresh' in addr:
+    if ('Bad' in addr) or ('Discount' in addr) or ('Old' in addr):
         yc = 0
-    elif 'NotF' in addr:
+    elif ('Fresh' in addr) or ('New' in addr):
         yc = 1
     labels.append(yc)
 
@@ -41,7 +44,7 @@ train_labels = labels[0:int(1*len(addri))]
 #####################################################################
 
 # Set image size
-train_shape = (len(train_addrs), 64, 64, 150)
+train_shape = (len(train_addrs), 64, 64, 300)
 
 # Create .hdf5
 hdf5_path = 'avocado_dataset_w64.hdf5'  # address to where you want to save the hdf5 file
@@ -64,6 +67,7 @@ for i in range(len(train_addrs)):
         print('Train data: {}/{}'.format(i, len(train_addrs)))
 
     # Read images
+    print(i)
 
     addr = train_addrs[i]
     # Read image
@@ -77,15 +81,15 @@ for i in range(len(train_addrs)):
         img_array = rb.ReadAsArray()
         img[:, :, ind] = img_array
 
-    # I am averaging consecutive bands, so instead of 300 we will have 150 (avg(1,2), avg (3,4), avg(4,5), ...)
-    img2 = np.zeros((img.shape[0], img.shape[1], img.shape[2], int(img.shape[3] / 2)))
-    for n in range(0, img.shape[0]):
-        for band in range(0, img.shape[3], 2):
-            img2[n, :, :, int(band / 2)] = (img[n, :, :, band] + img[n, :, :, band + 1]) / 2.
-    img = img2
+    # # I am averaging consecutive bands, so instead of 300 we will have 300 (avg(1,2), avg (3,4), avg(4,5), ...)
+    # img2 = np.zeros((img.shape[0], img.shape[1], img.shape[2], int(img.shape[3] / 2)))
+    # for n in range(0, img.shape[0]):
+    #     for band in range(0, img.shape[3], 2):
+    #         img2[n, :, :, int(band / 2)] = (img[n, :, :, band] + img[n, :, :, band + 1]) / 2.
+    # img = img2
 
-    # Reshape image to 64 x 64 x 150
-    #reshaped_image =
+    # Reshape image to 64 x 64 x 300
+    reshaped_image = cv2.resize(img, (64, 64), interpolation=cv2.INTER_CUBIC)
 
     hdf5_file["train_img"][i, ...] = reshaped_image
 
