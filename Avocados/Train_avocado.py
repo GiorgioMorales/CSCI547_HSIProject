@@ -4,6 +4,7 @@ from sklearn.model_selection import StratifiedKFold
 import numpy as np
 from operator import truediv
 import h5py
+import cv2
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score, cohen_kappa_score, confusion_matrix
 
 from Avocados.networks import *
@@ -42,46 +43,32 @@ LOAD HDF5 FILE
 
 hdf5_file = h5py.File('avocado_dataset_w64.hdf5', "r")
 train_x = np.array(hdf5_file["train_img"][...])
+
 train_y = np.array(hdf5_file["train_labels"][...])
 
 # Average consecutive bands
-img2 = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], int(train_x.shape[3] / 2)))
+img2 = np.zeros((train_x.shape[0], int(train_x.shape[1] / 2), int(train_x.shape[2] / 2), int(train_x.shape[3] / 2)))
 for n in range(0, train_x.shape[0]):
+    xt = cv2.resize(np.float32(train_x[n, :, :, :]), (32, 32), interpolation=cv2.INTER_CUBIC)
     for i in range(0, train_x.shape[3], 2):
-        img2[n, :, :, int(i / 2)] = (train_x[n, :, :, i] + train_x[n, :, :, i + 1]) / 2.
+        img2[n, :, :, int(i / 2)] = (xt[:, :, i] + xt[:, :, i + 1]) / 2.
 
 train_x = img2
 
-# temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], 20))
-#
-# temp[:, :, :, 0] = train_x[:, :, :, 10]
-# temp[:, :, :, 1] = train_x[:, :, :, 15]
-# temp[:, :, :, 2] = train_x[:, :, :,20]
-# temp[:, :, :, 3] = train_x[:, :, :,22]
-# temp[:, :, :, 4] = train_x[:, :, :,24]
-# temp[:, :, :, 5] = train_x[:, :, :, 27]
-# temp[:, :, :, 6] = train_x[:, :, :, 30]
-# temp[:, :, :, 7] = train_x[:, :, :, 40]
-# temp[:, :, :, 8] = train_x[:, :, :,55]
-# temp[:, :, :, 9] = train_x[:, :, :, 36]
-# temp[:, :, :, 10] = train_x[:, :, :, 59]
-# temp[:, :, :, 11] = train_x[:, :, :, 61]
-# temp[:, :, :, 12] = train_x[:, :, :, 66]
-# temp[:, :, :, 13] = train_x[:, :, :, 73]
-# temp[:, :, :, 14] = train_x[:, :, :, 114]
-# temp[:, :, :, 15] = train_x[:, :, :, 128]
-# temp[:, :, :, 16] = train_x[:, :, :, 131]
-# temp[:, :, :, 17] = train_x[:, :, :, 136]
-# temp[:, :, :, 18] = train_x[:, :, :, 141]
-# temp[:, :, :, 19] = train_x[:, :, :, 144]
-#
-#
-# train_x = temp
+temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], 5))
 
+temp[:, :, :, 0] = train_x[:, :, :, 138]
+temp[:, :, :, 1] = train_x[:, :, :, 140]
+temp[:, :, :, 2] = train_x[:, :, :, 143]
+temp[:, :, :, 3] = train_x[:, :, :, 145]
+temp[:, :, :, 4] = train_x[:, :, :, 149]
+
+
+train_x = temp
 
 train_x, train_y = add_rotation_flip(train_x, train_y)
 print(train_x.shape)
-train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], train_x.shape[2], train_x.shape[3]))
+# train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], train_x.shape[2], train_x.shape[3]))
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -120,7 +107,7 @@ def AA_andEachClassAccuracy(confusion_m):
 data = 'AVOCADO'
 # Load model
 print("Loading model...")
-model = hyper3dnet_simplified(img_shape=(windowSize, windowSize, train_x.shape[3]), classes=int(classes))
+model = hyper3dnet2(img_shape=(windowSize, windowSize, train_x.shape[3], 1), classes=int(classes))
 model.summary()
 
 ntrain = 1
@@ -131,15 +118,15 @@ for train, test in kfold.split(train_x, train_y):
     xtest = train_x[test]
 
     # Compile model
-    model = hyper3dnet_simplified(img_shape=(windowSize, windowSize, train_x.shape[3]), classes=classes)
-    # model.compile(optimizer='adadelta', loss='binary_crossentropy', metrics=['acc'])
-    optimizer = Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-    model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['acc'])
-    filepath = "weights-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5"
-    checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+    model = hyper3dnet2(img_shape=(windowSize, windowSize, train_x.shape[3], 1), classes=classes)
+    model.compile(optimizer='adadelta', loss='binary_crossentropy', metrics=['acc'])
+    # optimizer = Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+    # model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['acc'])
+    filepath = "weights5-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5"
+    checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
     callbacks_list = [checkpoint]
 
-    ep = 500
+    ep = 600
 
     # Train model on dataset
     print(data + ": Training" + str(ntrain) + "begins...")
@@ -147,7 +134,7 @@ for train, test in kfold.split(train_x, train_y):
                         batch_size=16, epochs=ep, callbacks=callbacks_list)
 
     # Evaluate network
-    model.load_weights("weights-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5")
+    model.load_weights("weights5-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5")
     model.compile(optimizer='adadelta', loss='binary_crossentropy', metrics=['acc'])
     ypred = model.predict(xtest)
     ypred = ypred.round()
@@ -175,8 +162,8 @@ for train, test in kfold.split(train_x, train_y):
     ntrain += 1
 
 bestindex = np.argmax(cvoa) + 1
-model.load_weights("weights-hyper3dnet" + data + str(bestindex) + "-best_3layers_4filters.h5")
-model.save(data + "_hyper3dnet_4layers_8filters_selected.h5")
+model.load_weights("weights5-hyper3dnet" + data + str(bestindex) + "-best_3layers_4filters.h5")
+model.save(data + "_hyper3dnet_4layers_8filters_selected5.h5")
 
 file_name = "classification_report_" + data + ".txt"
 with open(file_name, 'w') as x_file:

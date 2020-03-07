@@ -1,20 +1,20 @@
-from keras.callbacks import ModelCheckpoint
-from keras.optimizers import Adam
+import matplotlib.pyplot as plt
 from sklearn.model_selection import StratifiedKFold
 import numpy as np
 from operator import truediv
 import h5py
 import tensorflow as tf
+import cv2
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score, cohen_kappa_score, confusion_matrix
 
-from networks import *
+from Avocados.networks import *
 
 import keras.backend as k
 import pickle
 import pandas as pd
 
 k.set_image_data_format('channels_last')
-k.set_learning_phase(0)
+k.set_learning_phase(1)
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -24,7 +24,6 @@ Data augmentation functions
 
 
 def add_rotation_flip(x, y):
-
     x = np.reshape(x, (x.shape[0], x.shape[1], x.shape[2], x.shape[3], 1))
 
     # Flip horizontally
@@ -52,43 +51,27 @@ train_x = np.array(hdf5_file["train_img"][...])
 train_y = np.array(hdf5_file["train_labels"][...])
 
 # Average consecutive bands
-img2 = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], int(train_x.shape[3] / 2)))
+img2 = np.zeros((train_x.shape[0], int(train_x.shape[1] / 2), int(train_x.shape[2] / 2), int(train_x.shape[3] / 2)))
 for n in range(0, train_x.shape[0]):
+    xt = cv2.resize(np.float32(train_x[n, :, :, :]), (32, 32), interpolation=cv2.INTER_CUBIC)
     for i in range(0, train_x.shape[3], 2):
-        img2[n, :, :, int(i / 2)] = (train_x[n, :, :, i] + train_x[n, :, :, i + 1]) / 2.
+        img2[n, :, :, int(i / 2)] = (xt[:, :, i] + xt[:, :, i + 1]) / 2.
 
 train_x = img2
 
-# temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], 20))
-#
-# temp[:, :, :, 0] = train_x[:, :, :, 10]
-# temp[:, :, :, 1] = train_x[:, :, :, 15]
-# temp[:, :, :, 2] = train_x[:, :, :,20]
-# temp[:, :, :, 3] = train_x[:, :, :,22]
-# temp[:, :, :, 4] = train_x[:, :, :,24]
-# temp[:, :, :, 5] = train_x[:, :, :, 27]
-# temp[:, :, :, 6] = train_x[:, :, :, 30]
-# temp[:, :, :, 7] = train_x[:, :, :, 40]
-# temp[:, :, :, 8] = train_x[:, :, :,55]
-# temp[:, :, :, 9] = train_x[:, :, :, 36]
-# temp[:, :, :, 10] = train_x[:, :, :, 59]
-# temp[:, :, :, 11] = train_x[:, :, :, 61]
-# temp[:, :, :, 12] = train_x[:, :, :, 66]
-# temp[:, :, :, 13] = train_x[:, :, :, 73]
-# temp[:, :, :, 14] = train_x[:, :, :, 114]
-# temp[:, :, :, 15] = train_x[:, :, :, 128]
-# temp[:, :, :, 16] = train_x[:, :, :, 131]
-# temp[:, :, :, 17] = train_x[:, :, :, 136]
-# temp[:, :, :, 18] = train_x[:, :, :, 141]
-# temp[:, :, :, 19] = train_x[:, :, :, 144]
-#
-#
-# train_x = temp
+temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], 5))
 
+temp[:, :, :, 0] = train_x[:, :, :, 138]
+temp[:, :, :, 1] = train_x[:, :, :, 140]
+temp[:, :, :, 2] = train_x[:, :, :, 143]
+temp[:, :, :, 3] = train_x[:, :, :, 145]
+temp[:, :, :, 4] = train_x[:, :, :, 149]
+
+train_x = temp
 
 train_x, train_y = add_rotation_flip(train_x, train_y)
 print(train_x.shape)
-train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], train_x.shape[2], train_x.shape[3]))
+# train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], train_x.shape[2], train_x.shape[3]))
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -129,14 +112,13 @@ dataset = 'AVOCADO'
 data = 'AVOCADO'
 # Load model
 print("Loading model...")
-model = hyper3dnet_simplified(img_shape=(windowSize, windowSize, train_x.shape[3]), classes=int(classes))
+model = hyper3dnet2(img_shape=(windowSize, windowSize, train_x.shape[3], 1), classes=int(classes))
 model.summary()
 
 confmatrices = np.zeros((10, int(classes), int(classes)))
 
 ntrain = 1
 for train, test in kfold.split(train_x, train_y):
-
     ytrain = train_y[train]
     ytest = train_y[test]
 
@@ -145,8 +127,8 @@ for train, test in kfold.split(train_x, train_y):
     xtest = train_x[test]
 
     # Compile model
-    model = hyper3dnet_simplified(img_shape=(windowSize, windowSize, train_x.shape[3]), classes=classes)
-    model.load_weights("weights-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5")
+    model = hyper3dnet2(img_shape=(windowSize, windowSize, train_x.shape[3], 1), classes=classes)
+    model.load_weights("weights5-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5")
     model.compile(optimizer='adadelta', loss='binary_crossentropy', metrics=['acc'])
     ypred = model.predict(xtest)
     ypred = ypred.round()
@@ -176,10 +158,10 @@ for train, test in kfold.split(train_x, train_y):
     cvpre.append(prec * 100)
     cvrec.append(rec * 100)
     cvf1.append(f1 * 100)
-    
+
     ntrain += 1
 
-file_name = "classification_report_hyper3dnet_" + dataset + ".txt"
+file_name = "classification_report_hyper3dnet_5bands_" + dataset + ".txt"
 with open(file_name, 'w') as x_file:
     x_file.write("Overall accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvoa)), float(np.std(cvoa))))
     x_file.write('\n')
@@ -197,11 +179,11 @@ with open(file_name, 'w') as x_file:
 means = np.mean(confmatrices * 100, axis=0)
 stds = np.std(confmatrices * 100, axis=0)
 
-with open('meanshyper3dnet', 'wb') as f:
+with open('meanshyper3dnet5', 'wb') as f:
     pickle.dump(means, f)
-with open('stdshyper3dnet', 'wb') as f:
+with open('stdshyper3dnet5', 'wb') as f:
     pickle.dump(stds, f)
-with open('cvf1hyper3dnet', 'wb') as f:
+with open('cvf1hyper3dnet5', 'wb') as f:
     pickle.dump(cvf1, f)
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -210,52 +192,52 @@ Plot confusion matrix
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-#with open('meansweedann', 'rb') as f:
-#    means = pickle.load(f)
-#with open('stdsweedann', 'rb') as f:
-#    stds = pickle.load(f)
-#
-#
-#def plot_confusion_matrix(cm, cms, classescf,
-#                          cmap=plt.cm.Blues):
-#    """
-#    This function prints and plots the confusion matrix.
-#    Normalization can be applied by setting `normalize=True`.
-#    """
-#    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-#    plt.colorbar()
-#    tick_marks = np.arange(len(classescf))
-#    plt.xticks(tick_marks, classescf, rotation=45)
-#    plt.yticks(tick_marks, classescf)
-#
-#    thresh = cm.max() / 2.
-#
-#    for i in range(cm.shape[0]):
-#        for j in range(cm.shape[1]):
-#
-#            if (cm[i, j] == 100 or cm[i, j] == 0) and cms[i, j] == 0:
-#                plt.text(j, i, '{0:.0f}'.format(cm[i, j]) + '\n$\pm$' + '{0:.0f}'.format(cms[i, j]),
-#                         horizontalalignment="center",
-#                         verticalalignment="center", fontsize=15,
-#                         color="white" if cm[i, j] > thresh else "black")
-#
-#            else:
-#                plt.text(j, i, '{0:.2f}'.format(cm[i, j]) + '\n$\pm$' + '{0:.2f}'.format(cms[i, j]),
-#                         horizontalalignment="center",
-#                         verticalalignment="center", fontsize=15,
-#                         color="white" if cm[i, j] > thresh else "black")
-#
-#    plt.tight_layout()
-#    plt.ylabel('True label')
-#    plt.xlabel('Predicted label')
-#
-#
-## Plot non-normalized confusion matrix
-#classes_list = list(range(0, int(3)))
-#plt.figure()
-#plot_confusion_matrix(means, stds, classescf=classes_list)
-#dataset = 'WEED'
-# plt.savefig('MatrixConfusion_' + dataset + 'weedann.png', dpi=1200)
+with open('meanshyper3dnet5p', 'rb') as f:
+   means = pickle.load(f)
+with open('stdshyper3dnet5p', 'rb') as f:
+   stds = pickle.load(f)
+
+
+def plot_confusion_matrix(cm, cms, classescf,
+                         cmap=plt.cm.Blues):
+   """
+   This function prints and plots the confusion matrix.
+   Normalization can be applied by setting `normalize=True`.
+   """
+   plt.imshow(cm, interpolation='nearest', cmap=cmap)
+   plt.colorbar()
+   tick_marks = np.arange(len(classescf))
+   plt.xticks(tick_marks, classescf, rotation=45)
+   plt.yticks(tick_marks, classescf)
+
+   thresh = cm.max() / 2.
+
+   for i in range(cm.shape[0]):
+       for j in range(cm.shape[1]):
+
+           if (cm[i, j] == 100 or cm[i, j] == 0) and cms[i, j] == 0:
+               plt.text(j, i, '{0:.0f}'.format(cm[i, j]) + '\n$\pm$' + '{0:.0f}'.format(cms[i, j]),
+                        horizontalalignment="center",
+                        verticalalignment="center", fontsize=15,
+                        color="white" if cm[i, j] > thresh else "black")
+
+           else:
+               plt.text(j, i, '{0:.2f}'.format(cm[i, j]) + '\n$\pm$' + '{0:.2f}'.format(cms[i, j]),
+                        horizontalalignment="center",
+                        verticalalignment="center", fontsize=15,
+                        color="white" if cm[i, j] > thresh else "black")
+
+   plt.tight_layout()
+   plt.ylabel('True label')
+   plt.xlabel('Predicted label')
+
+
+# Plot non-normalized confusion matrix
+classes_list = list(range(0, int(2)))
+plt.figure()
+plot_confusion_matrix(means, stds, classescf=classes_list)
+dataset = 'AVOCADO'
+plt.savefig('MatrixConfusion_' + dataset + '_pruned_5bands.png', dpi=1200)
 
 # import pickle
 # with open('t-test/f1WEEDhybridsn', 'rb') as f:
