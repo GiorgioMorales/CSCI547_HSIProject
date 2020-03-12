@@ -192,9 +192,9 @@ Plot confusion matrix
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-with open('meanshyper3dnet5p', 'rb') as f:
+with open('band_selection\\10 bands\\meanshyper3dnet10p', 'rb') as f:
    means = pickle.load(f)
-with open('stdshyper3dnet5p', 'rb') as f:
+with open('band_selection\\10 bands\\stdshyper3dnet10p', 'rb') as f:
    stds = pickle.load(f)
 
 
@@ -237,7 +237,7 @@ classes_list = list(range(0, int(2)))
 plt.figure()
 plot_confusion_matrix(means, stds, classescf=classes_list)
 dataset = 'AVOCADO'
-plt.savefig('MatrixConfusion_' + dataset + '_pruned_5bands.png', dpi=1200)
+plt.savefig('MatrixConfusion_' + dataset + '_pruned_10bands.png', dpi=1200)
 
 # import pickle
 # with open('t-test/f1WEEDhybridsn', 'rb') as f:

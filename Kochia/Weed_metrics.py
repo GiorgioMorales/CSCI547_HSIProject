@@ -139,9 +139,9 @@ Plot confusion matrix
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-with open('Kochia/meanshyper3dnet20p', 'rb') as f:
+with open('band_selection/10 bands/meanshyper3dnet10p', 'rb') as f:
     means = pickle.load(f)
-with open('Kochia/stdshyper3dnet20p', 'rb') as f:
+with open('band_selection/10 bands/stdshyper3dnet10p', 'rb') as f:
     stds = pickle.load(f)
 
 
@@ -184,7 +184,7 @@ classes_list = list(range(0, int(3)))
 plt.figure()
 plot_confusion_matrix(means, stds, classescf=classes_list)
 dataset = 'WEED'
-plt.savefig('MatrixConfusion_' + dataset + 'hyper3dnet_pruned_20p.png', dpi=1200)
+plt.savefig('MatrixConfusion_' + dataset + 'hyper3dnet_pruned_10.png', dpi=1200)
 
 # Box-plot
 with open('t-test/cvf1hyper3dnet', 'rb') as f:

@@ -8,7 +8,7 @@ import h5py
 from sklearn.decomposition import PCA
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score, cohen_kappa_score, confusion_matrix
 
-from networks import *
+from Kochia.networks import *
 
 import keras.backend as k
 
@@ -25,15 +25,15 @@ hdf5_file = h5py.File('weed_dataset_w25.hdf5', "r")
 train_x = np.array(hdf5_file["train_img"][...])
 # train_x = (train_x - np.min(train_x)) / (np.max(train_x) - np.min(train_x))
 # train_x = np.clip(train_x, 0, 1)
-#train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], train_x.shape[2], train_x.shape[3], 1))
+# train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], train_x.shape[2], train_x.shape[3], 1))
 train_y = np.array(hdf5_file["train_labels"][...])
 
 # Average consecutive bands
-img2 = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], int(train_x.shape[3]/2)))
+img2 = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], int(train_x.shape[3] / 2)))
 for n in range(0, train_x.shape[0]):
     # Average consecutive bands
     for i in range(0, train_x.shape[3], 2):
-        img2[n, :, :, int(i/2)] = (train_x[n, :, :, i] + train_x[n, :, :, i + 1]) / 2.
+        img2[n, :, :, int(i / 2)] = (train_x[n, :, :, i] + train_x[n, :, :, i + 1]) / 2.
 
 train_x = img2
 
@@ -44,10 +44,10 @@ temp[:, :, :, 1] = train_x[:, :, :, 9]
 temp[:, :, :, 2] = train_x[:, :, :, 10]
 temp[:, :, :, 3] = train_x[:, :, :, 36]
 temp[:, :, :, 4] = train_x[:, :, :, 37]
-temp[:, :, :,5] = train_x[:, :, :, 43]
-temp[:, :, :,6] = train_x[:, :, :,55]
-temp[:, :, :,7] = train_x[:, :, :, 66]
-temp[:, :, :,8] = train_x[:, :, :, 101]
+temp[:, :, :, 5] = train_x[:, :, :, 43]
+temp[:, :, :, 6] = train_x[:, :, :, 55]
+temp[:, :, :, 7] = train_x[:, :, :, 66]
+temp[:, :, :, 8] = train_x[:, :, :, 101]
 temp[:, :, :, 9] = train_x[:, :, :, 105]
 temp[:, :, :, 10] = train_x[:, :, :, 106]
 temp[:, :, :, 11] = train_x[:, :, :, 107]
@@ -60,11 +60,10 @@ temp[:, :, :, 17] = train_x[:, :, :, 131]
 temp[:, :, :, 18] = train_x[:, :, :, 132]
 temp[:, :, :, 19] = train_x[:, :, :, 144]
 
-
 train_x = temp
 
 print(train_x.shape)
-#train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], train_x.shape[2], train_x.shape[3], 1))
+# train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], train_x.shape[2], train_x.shape[3], 1))
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -90,16 +89,16 @@ def categorical_accuracy(y_true, y_pred):
     return k.cast(k.equal(k.argmax(y_true, axis=-1),
                           k.argmax(y_pred, axis=-1)),
                   k.floatx())
-                  
-                                                                        
+
+
 def AA_andEachClassAccuracy(confusion_m):
     list_diag = np.diag(confusion_m)
     list_raw_sum = np.sum(confusion_m, axis=1)
     each_ac = np.nan_to_num(truediv(list_diag, list_raw_sum))
     average_acc = np.mean(each_ac)
     return each_ac, average_acc
-    
-                
+
+
 data = 'WEED'
 # Load model
 print("Loading model...")
@@ -118,8 +117,8 @@ for train, test in kfold.split(train_x, train_y):
     # Compile model
     model = hyper3dnet_simplified(img_shape=(windowSize, windowSize, train_x.shape[3]), classes=classes)
     model.compile(optimizer='adadelta', loss='categorical_crossentropy', metrics=['acc'])
-    #optimizer = Adam(lr=0.00001, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-    #model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['acc'])
+    # optimizer = Adam(lr=0.00001, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+    # model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['acc'])
     filepath = "selected-weights-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5"
     checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
     callbacks_list = [checkpoint]
@@ -130,20 +129,20 @@ for train, test in kfold.split(train_x, train_y):
     print(data + ": Training" + str(ntrain) + "begins...")
     history = model.fit(x=train_x[train], y=ytrain, validation_data=(train_x[test], ytest),
                         batch_size=64, epochs=ep, callbacks=callbacks_list)
-                        
+
     # Evaluate network
     k.set_learning_phase(1)
     model.load_weights("selected-weights-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5")
     ypred = model.predict(train_x[test])
-    
+
     # Calculate metrics
     oa = accuracy_score(np.argmax(ytest, axis=1), np.argmax(ypred, axis=-1))
     confusion = confusion_matrix(np.argmax(ytest, axis=1), np.argmax(ypred, axis=-1))
     each_acc, aa = AA_andEachClassAccuracy(confusion)
     kappa = cohen_kappa_score(np.argmax(ytest, axis=1), np.argmax(ypred, axis=-1))
     prec, rec, f1, support = precision_recall_fscore_support(np.argmax(ytest, axis=1),
-                                                            np.argmax(ypred, axis=-1), average='macro')
-    
+                                                             np.argmax(ypred, axis=-1), average='macro')
+
     # Add metrics to the list
     cvoa.append(oa * 100)
     cvaa.append(aa * 100)
@@ -151,20 +150,20 @@ for train, test in kfold.split(train_x, train_y):
     cvpre.append(prec * 100)
     cvrec.append(rec * 100)
     cvf1.append(f1 * 100)
-    
+
     print("%s: %.3f%%" % (model.metrics_names[1], oa * 100))
     file_name = "report_ntrain_selected" + str(ntrain) + ".txt"
     with open(file_name, 'w') as x_file:
-       x_file.write("Overall accuracy%.3f%%" % (float(oa)))
+        x_file.write("Overall accuracy%.3f%%" % (float(oa)))
 
     ntrain += 1
 
-#bestindex = np.argmax(cvoa) + 1
-#model.load_weights("selected-weights-hyper3dnet" + data + str(bestindex) + "-best_3layers_4filters.h5")
-#model.save(data + "_hyper3dnet_4layers_8filters_selected.h5")
+# bestindex = np.argmax(cvoa) + 1
+# model.load_weights("selected-weights-hyper3dnet" + data + str(bestindex) + "-best_3layers_4filters.h5")
+# model.save(data + "_hyper3dnet_4layers_8filters_selected.h5")
 #
-#file_name = "classification_report_" + data + ".txt"
-#with open(file_name, 'w') as x_file:
+# file_name = "classification_report_" + data + ".txt"
+# with open(file_name, 'w') as x_file:
 #   x_file.write("Overall accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvoa)), float(np.std(cvoa))))
 #   x_file.write('\n')
 #   x_file.write("Average accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvaa)), float(np.std(cvaa))))
