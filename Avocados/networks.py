@@ -17,7 +17,6 @@ def hyper3dnet(img_shape=(256, 256, 50, 1), classes=2):
     conv_layer1 = Conv3D(filters=1, kernel_size=(3, 3, 5), padding='same')(d0)
     conv_in = conv_layer1
 
-    # conv_in = Lambda(lambda x: k.mean(x, axis=-1))(conv_in)
     conv_in = Reshape((conv_in.shape[1].value, conv_in.shape[2].value,
                        conv_in.shape[3].value * conv_in.shape[4].value))(conv_in)
 
@@ -46,12 +45,10 @@ def hyper3dnet2(img_shape=(256, 256, 50, 1), classes=2):
     # Input
     d0 = Input(shape=img_shape)
 
-    # Initial attention
-    # d0 = attention_vector(d0)
-
     # 3D convolutions
     conv_in = Conv3D(filters=16, kernel_size=(3, 3, 3), padding='same')(d0)
 
+    # 2D convolutions
     conv_in = Reshape((conv_in.shape[1].value, conv_in.shape[2].value,
                        conv_in.shape[3].value * conv_in.shape[4].value))(conv_in)
     conv_in = Dropout(0.05)(conv_in)
