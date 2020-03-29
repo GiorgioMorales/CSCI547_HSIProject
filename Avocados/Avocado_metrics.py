@@ -6,9 +6,8 @@ import h5py
 import tensorflow as tf
 import cv2
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score, cohen_kappa_score, confusion_matrix
-
+from scipy.signal import find_peaks
 from Avocados.networks import *
-
 import keras.backend as k
 import pickle
 import pandas as pd
@@ -59,13 +58,42 @@ for n in range(0, train_x.shape[0]):
 
 train_x = img2
 
-temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], 5))
+# Select most relevant bands
+nbands = 5
 
-temp[:, :, :, 0] = train_x[:, :, :, 138]
-temp[:, :, :, 1] = train_x[:, :, :, 140]
-temp[:, :, :, 2] = train_x[:, :, :, 143]
-temp[:, :, :, 3] = train_x[:, :, :, 145]
-temp[:, :, :, 4] = train_x[:, :, :, 149]
+count = 0
+with open('avocadoselection.p', 'rb') as f:
+    saliency = pickle.load(f)
+
+peaks, _ = find_peaks(saliency, height=0)
+
+saliency = np.flip(np.argsort(saliency))
+
+indexes = []
+for i in range(0, len(saliency)):
+    if saliency[i] in peaks:
+        indexes.append(saliency[i])
+
+selected = []
+
+for i in range(0, len(indexes)):
+    flag = True
+    for j in range(0, len(selected)):
+        if np.abs(indexes[i] - selected[j]) < 5:
+            flag = False
+            break
+    if flag:
+        selected.append(indexes[i])
+        count += 1
+        if count >= nbands:
+            break
+
+selected.sort()
+
+temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], nbands))
+
+for nb in range(0, nbands):
+    temp[:, :, :, nb] = train_x[:, :, :, selected[nb]]
 
 train_x = temp
 
@@ -192,44 +220,44 @@ Plot confusion matrix
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-with open('band_selection\\10 bands\\meanshyper3dnet10p', 'rb') as f:
-   means = pickle.load(f)
-with open('band_selection\\10 bands\\stdshyper3dnet10p', 'rb') as f:
-   stds = pickle.load(f)
+with open('band_selection\\5bands\\meanshyper3dnet5', 'rb') as f:
+    means = pickle.load(f)
+with open('band_selection\\5bands\\stdshyper3dnet5', 'rb') as f:
+    stds = pickle.load(f)
 
 
 def plot_confusion_matrix(cm, cms, classescf,
-                         cmap=plt.cm.Blues):
-   """
+                          cmap=plt.cm.Blues):
+    """
    This function prints and plots the confusion matrix.
    Normalization can be applied by setting `normalize=True`.
    """
-   plt.imshow(cm, interpolation='nearest', cmap=cmap)
-   plt.colorbar()
-   tick_marks = np.arange(len(classescf))
-   plt.xticks(tick_marks, classescf, rotation=45)
-   plt.yticks(tick_marks, classescf)
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.colorbar()
+    tick_marks = np.arange(len(classescf))
+    plt.xticks(tick_marks, classescf, rotation=45)
+    plt.yticks(tick_marks, classescf)
 
-   thresh = cm.max() / 2.
+    thresh = cm.max() / 2.
 
-   for i in range(cm.shape[0]):
-       for j in range(cm.shape[1]):
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
 
-           if (cm[i, j] == 100 or cm[i, j] == 0) and cms[i, j] == 0:
-               plt.text(j, i, '{0:.0f}'.format(cm[i, j]) + '\n$\pm$' + '{0:.0f}'.format(cms[i, j]),
-                        horizontalalignment="center",
-                        verticalalignment="center", fontsize=15,
-                        color="white" if cm[i, j] > thresh else "black")
+            if (cm[i, j] == 100 or cm[i, j] == 0) and cms[i, j] == 0:
+                plt.text(j, i, '{0:.0f}'.format(cm[i, j]) + '\n$\pm$' + '{0:.0f}'.format(cms[i, j]),
+                         horizontalalignment="center",
+                         verticalalignment="center", fontsize=15,
+                         color="white" if cm[i, j] > thresh else "black")
 
-           else:
-               plt.text(j, i, '{0:.2f}'.format(cm[i, j]) + '\n$\pm$' + '{0:.2f}'.format(cms[i, j]),
-                        horizontalalignment="center",
-                        verticalalignment="center", fontsize=15,
-                        color="white" if cm[i, j] > thresh else "black")
+            else:
+                plt.text(j, i, '{0:.2f}'.format(cm[i, j]) + '\n$\pm$' + '{0:.2f}'.format(cms[i, j]),
+                         horizontalalignment="center",
+                         verticalalignment="center", fontsize=15,
+                         color="white" if cm[i, j] > thresh else "black")
 
-   plt.tight_layout()
-   plt.ylabel('True label')
-   plt.xlabel('Predicted label')
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
 
 
 # Plot non-normalized confusion matrix
@@ -237,7 +265,7 @@ classes_list = list(range(0, int(2)))
 plt.figure()
 plot_confusion_matrix(means, stds, classescf=classes_list)
 dataset = 'AVOCADO'
-plt.savefig('MatrixConfusion_' + dataset + '_pruned_10bands.png', dpi=1200)
+plt.savefig('MatrixConfusion_' + dataset + '_pruned_5bands.png', dpi=1200)
 
 # import pickle
 # with open('t-test/f1WEEDhybridsn', 'rb') as f:

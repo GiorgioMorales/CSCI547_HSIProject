@@ -1,12 +1,13 @@
 from keras.callbacks import ModelCheckpoint
-from keras.optimizers import Adam
+# from keras.optimizers import Adam
 from sklearn.model_selection import StratifiedKFold
 import numpy as np
 from operator import truediv
 import h5py
 import cv2
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score, cohen_kappa_score, confusion_matrix
-
+import pickle
+from scipy.signal import find_peaks
 from Avocados.networks import *
 
 import keras.backend as k
@@ -55,14 +56,42 @@ for n in range(0, train_x.shape[0]):
 
 train_x = img2
 
-temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], 5))
+# Select most relevant bands
+nbands = 5
 
-temp[:, :, :, 0] = train_x[:, :, :, 138]
-temp[:, :, :, 1] = train_x[:, :, :, 140]
-temp[:, :, :, 2] = train_x[:, :, :, 143]
-temp[:, :, :, 3] = train_x[:, :, :, 145]
-temp[:, :, :, 4] = train_x[:, :, :, 149]
+count = 0
+with open('avocadoselection.p', 'rb') as f:
+    saliency = pickle.load(f)
 
+peaks, _ = find_peaks(saliency, height=0)
+
+saliency = np.flip(np.argsort(saliency))
+
+indexes = []
+for i in range(0, len(saliency)):
+    if saliency[i] in peaks:
+        indexes.append(saliency[i])
+
+selected = []
+
+for i in range(0, len(indexes)):
+    flag = True
+    for j in range(0, len(selected)):
+        if np.abs(indexes[i] - selected[j]) < 5:
+            flag = False
+            break
+    if flag:
+        selected.append(indexes[i])
+        count += 1
+        if count >= nbands:
+            break
+
+selected.sort()
+
+temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], nbands))
+
+for nb in range(0, nbands):
+    temp[:, :, :, nb] = train_x[:, :, :, selected[nb]]
 
 train_x = temp
 
