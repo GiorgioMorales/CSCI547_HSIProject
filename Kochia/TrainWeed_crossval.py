@@ -1,11 +1,11 @@
-from keras.callbacks import ModelCheckpoint, EarlyStopping
-from keras.optimizers import Adam, SGD
+from keras.callbacks import ModelCheckpoint
 from keras.utils import to_categorical
 from sklearn.model_selection import StratifiedKFold
 import numpy as np
 from operator import truediv
 import h5py
-from sklearn.decomposition import PCA
+import pickle
+from scipy.signal import find_peaks
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score, cohen_kappa_score, confusion_matrix
 
 from Kochia.networks import *
@@ -37,33 +37,38 @@ for n in range(0, train_x.shape[0]):
 
 train_x = img2
 
-temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], 20))
+# Select most relevant bands
+nbands = 20
 
-temp[:, :, :, 0] = train_x[:, :, :, 2]
-temp[:, :, :, 1] = train_x[:, :, :, 9]
-temp[:, :, :, 2] = train_x[:, :, :, 10]
-temp[:, :, :, 3] = train_x[:, :, :, 36]
-temp[:, :, :, 4] = train_x[:, :, :, 37]
-temp[:, :, :, 5] = train_x[:, :, :, 43]
-temp[:, :, :, 6] = train_x[:, :, :, 55]
-temp[:, :, :, 7] = train_x[:, :, :, 66]
-temp[:, :, :, 8] = train_x[:, :, :, 101]
-temp[:, :, :, 9] = train_x[:, :, :, 105]
-temp[:, :, :, 10] = train_x[:, :, :, 106]
-temp[:, :, :, 11] = train_x[:, :, :, 107]
-temp[:, :, :, 12] = train_x[:, :, :, 111]
-temp[:, :, :, 13] = train_x[:, :, :, 113]
-temp[:, :, :, 14] = train_x[:, :, :, 114]
-temp[:, :, :, 15] = train_x[:, :, :, 121]
-temp[:, :, :, 16] = train_x[:, :, :, 122]
-temp[:, :, :, 17] = train_x[:, :, :, 131]
-temp[:, :, :, 18] = train_x[:, :, :, 132]
-temp[:, :, :, 19] = train_x[:, :, :, 144]
+count = 0
+with open('kochiaselection.p', 'rb') as f:
+    saliency = pickle.load(f)
+
+peaks, _ = find_peaks(saliency, height=5, distance=5)
+
+saliency = np.flip(np.argsort(saliency))
+
+indexes = []
+for i in range(0, len(saliency)):
+    if saliency[i] in peaks:
+        indexes.append(saliency[i])
+
+indexes = indexes[0:nbands]
+
+# indexes = [1, 129, 77, 63, 45, 80, 36, 83, 55, 91, 121, 67, 132, 130, 35, 81, 30, 46, 50, 58]
+
+indexes.sort()
+print(indexes)
+
+temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], nbands))
+
+for nb in range(0, nbands):
+    temp[:, :, :, nb] = train_x[:, :, :, indexes[nb]]
 
 train_x = temp
 
 print(train_x.shape)
-# train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], train_x.shape[2], train_x.shape[3], 1))
+train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], train_x.shape[2], train_x.shape[3], 1))
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -102,37 +107,33 @@ def AA_andEachClassAccuracy(confusion_m):
 data = 'WEED'
 # Load model
 print("Loading model...")
-model = hyper3dnet_simplified(img_shape=(windowSize, windowSize, train_x.shape[3]), classes=int(classes))
+model = hyper3dnet2(img_shape=(windowSize, windowSize, train_x.shape[3], 1), classes=int(classes))
 model.summary()
 
 ntrain = 1
 for train, test in kfold.split(train_x, train_y):
-    print(train_x[train][0, 10, 10, 10])
-    break
-    k.set_learning_phase(1)
-
     ytrain = to_categorical(train_y[train]).astype(np.int32)
     ytest = to_categorical(train_y[test]).astype(np.int32)
 
     # Compile model
-    model = hyper3dnet_simplified(img_shape=(windowSize, windowSize, train_x.shape[3]), classes=classes)
+    model = hyper3dnet2(img_shape=(windowSize, windowSize, train_x.shape[3], 1), classes=classes)
     model.compile(optimizer='adadelta', loss='categorical_crossentropy', metrics=['acc'])
     # optimizer = Adam(lr=0.00001, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     # model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['acc'])
-    filepath = "selected-weights-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5"
+    filepath = "selected20-weights-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5"
     checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
     callbacks_list = [checkpoint]
 
-    ep = 1000
+    ep = 300
 
     # Train model on dataset
     print(data + ": Training" + str(ntrain) + "begins...")
     history = model.fit(x=train_x[train], y=ytrain, validation_data=(train_x[test], ytest),
-                        batch_size=64, epochs=ep, callbacks=callbacks_list)
+                        batch_size=16, epochs=ep, callbacks=callbacks_list)
 
     # Evaluate network
-    k.set_learning_phase(1)
-    model.load_weights("selected-weights-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5")
+    model.load_weights("selected20-weights-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5")
+    model.compile(optimizer='adadelta', loss='categorical_crossentropy', metrics=['acc'])
     ypred = model.predict(train_x[test])
 
     # Calculate metrics
@@ -158,20 +159,20 @@ for train, test in kfold.split(train_x, train_y):
 
     ntrain += 1
 
-# bestindex = np.argmax(cvoa) + 1
-# model.load_weights("selected-weights-hyper3dnet" + data + str(bestindex) + "-best_3layers_4filters.h5")
-# model.save(data + "_hyper3dnet_4layers_8filters_selected.h5")
-#
-# file_name = "classification_report_" + data + ".txt"
-# with open(file_name, 'w') as x_file:
-#   x_file.write("Overall accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvoa)), float(np.std(cvoa))))
-#   x_file.write('\n')
-#   x_file.write("Average accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvaa)), float(np.std(cvaa))))
-#   x_file.write('\n')
-#   x_file.write("Kappa accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvka)), float(np.std(cvka))))
-#   x_file.write('\n')
-#   x_file.write("Precision accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvpre)), float(np.std(cvpre))))
-#   x_file.write('\n')
-#   x_file.write("Recall accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvrec)), float(np.std(cvrec))))
-#   x_file.write('\n')
-#   x_file.write("F1 accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvf1)), float(np.std(cvf1))))
+bestindex = np.argmax(cvoa) + 1
+model.load_weights("selected20-weights-hyper3dnet" + data + str(bestindex) + "-best_3layers_4filters.h5")
+model.save(data + "_hyper3dnet_4layers_8filters_selected20.h5")
+
+file_name = "classification_report_" + data + ".txt"
+with open(file_name, 'w') as x_file:
+    x_file.write("Overall accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvoa)), float(np.std(cvoa))))
+    x_file.write('\n')
+    x_file.write("Average accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvaa)), float(np.std(cvaa))))
+    x_file.write('\n')
+    x_file.write("Kappa accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvka)), float(np.std(cvka))))
+    x_file.write('\n')
+    x_file.write("Precision accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvpre)), float(np.std(cvpre))))
+    x_file.write('\n')
+    x_file.write("Recall accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvrec)), float(np.std(cvrec))))
+    x_file.write('\n')
+    x_file.write("F1 accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvf1)), float(np.std(cvf1))))

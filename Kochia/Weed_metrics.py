@@ -6,6 +6,7 @@ import pandas as pd
 from operator import truediv
 import h5py
 import pickle
+from scipy.signal import find_peaks
 from scipy import stats
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score, cohen_kappa_score, confusion_matrix
 
@@ -34,6 +35,36 @@ for n in range(0, train_x.shape[0]):
         img2[n, :, :, int(i / 2)] = (train_x[n, :, :, i] + train_x[n, :, :, i + 1]) / 2.
 
 train_x = img2
+
+# Select most relevant bands
+nbands = 20
+
+count = 0
+with open('kochiaselection.p', 'rb') as f:
+    saliency = pickle.load(f)
+
+peaks, _ = find_peaks(saliency, height=5, distance=5)
+
+saliency = np.flip(np.argsort(saliency))
+
+indexes = []
+for i in range(0, len(saliency)):
+    if saliency[i] in peaks:
+        indexes.append(saliency[i])
+
+indexes = indexes[0:nbands]
+
+# indexes = [1, 129, 77, 63, 45, 80, 36, 83, 55, 91, 121, 67, 132, 130, 35, 81, 30, 46, 50, 58]
+
+indexes.sort()
+print(indexes)
+
+temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], nbands))
+
+for nb in range(0, nbands):
+    temp[:, :, :, nb] = train_x[:, :, :, indexes[nb]]
+
+train_x = temp
 
 print(train_x.shape)
 train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], train_x.shape[2], train_x.shape[3], 1))
@@ -139,9 +170,9 @@ Plot confusion matrix
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-with open('band_selection/10 bands/meanshyper3dnet10p', 'rb') as f:
+with open('band_selection/20 bands/meanshyper3dnet20p', 'rb') as f:
     means = pickle.load(f)
-with open('band_selection/10 bands/stdshyper3dnet10p', 'rb') as f:
+with open('band_selection/20 bands/stdshyper3dnet20p', 'rb') as f:
     stds = pickle.load(f)
 
 
@@ -171,7 +202,7 @@ def plot_confusion_matrix(cm, cms, classescf,
             else:
                 plt.text(j, i, '{0:.2f}'.format(cm[i, j]) + '\n$\pm$' + '{0:.2f}'.format(cms[i, j]),
                          horizontalalignment="center",
-                         verticalalignment="center", fontsize=15,
+                         verticalalignment="center", fontsize=20,
                          color="white" if cm[i, j] > thresh else "black")
 
     plt.tight_layout()
@@ -184,12 +215,12 @@ classes_list = list(range(0, int(3)))
 plt.figure()
 plot_confusion_matrix(means, stds, classescf=classes_list)
 dataset = 'WEED'
-plt.savefig('MatrixConfusion_' + dataset + 'hyper3dnet_pruned_10.png', dpi=1200)
+plt.savefig('MatrixConfusion_' + dataset + 'hyper3dnet_pruned_20p.png', dpi=1200)
 
 # Box-plot
-with open('t-test/cvf1hyper3dnet', 'rb') as f:
+with open('t-test/cvf1hyper3dnet5', 'rb') as f:
     cvf1 = pickle.load(f)
-with open('t-test/cvf1hyper3dnet_pruned', 'rb') as f:
+with open('t-test/cvf1hyper3dnet6_NC_OC_IE', 'rb') as f:
     cvf2 = pickle.load(f)
 
 df = pd.DataFrame({'Hyper3dNET': cvf1, 'Hyper3dNET_Pruned': cvf2})
