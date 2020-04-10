@@ -170,9 +170,9 @@ Plot confusion matrix
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-with open('band_selection/20 bands/meanshyper3dnet20p', 'rb') as f:
+with open('band_selection/NC_OC_IE/6 bands/meanshyper3dnet6_NC_OC_IE', 'rb') as f:
     means = pickle.load(f)
-with open('band_selection/20 bands/stdshyper3dnet20p', 'rb') as f:
+with open('band_selection/NC_OC_IE/6 bands/stdshyper3dnet6_NC_OC_IE', 'rb') as f:
     stds = pickle.load(f)
 
 
@@ -196,7 +196,7 @@ def plot_confusion_matrix(cm, cms, classescf,
             if (cm[i, j] == 100 or cm[i, j] == 0) and cms[i, j] == 0:
                 plt.text(j, i, '{0:.0f}'.format(cm[i, j]) + '\n$\pm$' + '{0:.0f}'.format(cms[i, j]),
                          horizontalalignment="center",
-                         verticalalignment="center", fontsize=15,
+                         verticalalignment="center", fontsize=20,
                          color="white" if cm[i, j] > thresh else "black")
 
             else:
@@ -215,7 +215,7 @@ classes_list = list(range(0, int(3)))
 plt.figure()
 plot_confusion_matrix(means, stds, classescf=classes_list)
 dataset = 'WEED'
-plt.savefig('MatrixConfusion_' + dataset + 'hyper3dnet_pruned_20p.png', dpi=1200)
+plt.savefig('MatrixConfusion_' + dataset + 'hyper3dnet_6NC_OC_IE.png', dpi=1200)
 
 # Box-plot
 with open('t-test/cvf1hyper3dnet5', 'rb') as f:
