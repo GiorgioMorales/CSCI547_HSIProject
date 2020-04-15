@@ -1,0 +1,25 @@
+6 BANDS
+
+print(stats.ttest_rel(df['SA'], df['OCF']))
+print(stats.ttest_rel(df['SA'], df['GA']))
+print(stats.ttest_rel(df['SA'], df['PLS-DA']))
+print(stats.ttest_rel(df['SA_Pruned'], df['SA']))
+
+Ttest_relResult(statistic=1.0177539988725515, pvalue=0.33537255650791137)
+Ttest_relResult(statistic=2.823420331357444, pvalue=0.01993537578102092)
+Ttest_relResult(statistic=17.524657881526668, pvalue=2.9020012509476264e-08)
+Ttest_relResult(statistic=3.052282043875671, pvalue=0.013742081457550279)
+
+10 BANDS
+
+Ttest_relResult(statistic=-2.1046701584524836, pvalue=0.06462656731931643)
+Ttest_relResult(statistic=11.510999276240124, pvalue=1.0965925602946787e-06)
+Ttest_relResult(statistic=7.2425624731932965, pvalue=4.854988701057312e-05)
+Ttest_relResult(statistic=2.7738193516295477, pvalue=0.02161809241707164)
+
+20 BANDS
+
+Ttest_relResult(statistic=1.2644312766602936, pvalue=0.23783690843752056)
+Ttest_relResult(statistic=1.0924981215643348, pvalue=0.3029938179213214)
+Ttest_relResult(statistic=2.100827227757426, pvalue=0.06503092228293683)
+Ttest_relResult(statistic=1.7003135575273947, pvalue=0.12328720829596564)

@@ -217,13 +217,25 @@ plot_confusion_matrix(means, stds, classescf=classes_list)
 dataset = 'WEED'
 plt.savefig('MatrixConfusion_' + dataset + 'hyper3dnet_6PLS.png', dpi=1200)
 
+
 # Box-plot
 with open('t-test/cvf1hyper3dnet5', 'rb') as f:
     cvf1 = pickle.load(f)
 with open('t-test/cvf1hyper3dnet6_NC_OC_IE', 'rb') as f:
     cvf2 = pickle.load(f)
+with open('t-test/cvf1hyper3dnet6GA', 'rb') as f:
+    cvf3 = pickle.load(f)
+with open('t-test/cvf1hyper3dnet6PLS', 'rb') as f:
+    cvf4 = pickle.load(f)
+with open('t-test/cvf1hyper3dnet5p', 'rb') as f:
+    cvf5 = pickle.load(f)
 
-df = pd.DataFrame({'Hyper3dNET': cvf1, 'Hyper3dNET_Pruned': cvf2})
-df[['Hyper3dNET', 'Hyper3dNET_Pruned']].plot(kind='box')
-print(stats.ttest_rel(df['Hyper3dNET'], df['Hyper3dNET_Pruned']))
-plt.savefig('Box_' + dataset + '.png', dpi=1200)
+df = pd.DataFrame({'SSA': cvf1, 'OCF': cvf2, 'HAGRID': cvf3,
+                   'PLS-DA': cvf4, 'SSA_Pruned': cvf5})
+df[['SSA', 'OCF', 'HAGRID', 'PLS-DA', 'SSA_Pruned']].plot(kind='box')
+print(stats.ttest_rel(df['SSA'], df['OCF']))
+print(stats.ttest_rel(df['SSA'], df['HAGRID']))
+print(stats.ttest_rel(df['SSA'], df['PLS-DA']))
+print(stats.ttest_rel(df['SSA_Pruned'], df['SSA']))
+plt.savefig('Box_' + dataset + '6bands.png', dpi=1200)
+

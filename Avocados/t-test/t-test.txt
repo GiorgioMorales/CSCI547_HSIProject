@@ -1,0 +1,7 @@
+print(stats.ttest_rel(df['SSA'], df['OCF']))
+  ...:print(stats.ttest_rel(df['SSA'], df['HAGRID']))
+  ...:print(stats.ttest_rel(df['SSA'], df['PLS-DA']))
+
+Ttest_relResult(statistic=0.9999999999999999, pvalue=0.34343639613791355)
+Ttest_relResult(statistic=1.806665059669704, pvalue=0.10428434736713371)
+Ttest_relResult(statistic=1.7156026292831128, pvalue=0.12037216762068939)

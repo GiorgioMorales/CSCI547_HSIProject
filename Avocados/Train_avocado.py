@@ -63,7 +63,7 @@ count = 0
 with open('avocadoselection.p', 'rb') as f:
     saliency = pickle.load(f)
 
-peaks, _ = find_peaks(saliency, height=0)
+peaks, _ = find_peaks(saliency, height=5, distance=5)
 
 saliency = np.flip(np.argsort(saliency))
 
@@ -72,26 +72,14 @@ for i in range(0, len(saliency)):
     if saliency[i] in peaks:
         indexes.append(saliency[i])
 
-selected = []
+indexes = indexes[0:nbands]
 
-for i in range(0, len(indexes)):
-    flag = True
-    for j in range(0, len(selected)):
-        if np.abs(indexes[i] - selected[j]) < 5:
-            flag = False
-            break
-    if flag:
-        selected.append(indexes[i])
-        count += 1
-        if count >= nbands:
-            break
-
-selected.sort()
+indexes.sort()
 
 temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], nbands))
 
 for nb in range(0, nbands):
-    temp[:, :, :, nb] = train_x[:, :, :, selected[nb]]
+    temp[:, :, :, nb] = train_x[:, :, :, indexes[nb]]
 
 train_x = temp
 

@@ -1,1 +1,0 @@
-Ttest_relResult(statistic=-5.308777693820077, pvalue=0.00048816225245408915)

@@ -5,15 +5,18 @@ from operator import truediv
 import h5py
 import tensorflow as tf
 import cv2
-from sklearn.metrics import precision_recall_fscore_support, accuracy_score, cohen_kappa_score, confusion_matrix
 from scipy.signal import find_peaks
+from scipy import stats
+from sklearn.metrics import precision_recall_fscore_support, accuracy_score, cohen_kappa_score, confusion_matrix
+
 from Avocados.networks import *
+
 import keras.backend as k
 import pickle
 import pandas as pd
 
 k.set_image_data_format('channels_last')
-k.set_learning_phase(1)
+k.set_learning_phase(0)
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -65,7 +68,7 @@ count = 0
 with open('avocadoselection.p', 'rb') as f:
     saliency = pickle.load(f)
 
-peaks, _ = find_peaks(saliency, height=0)
+peaks, _ = find_peaks(saliency, height=5, distance=5)
 
 saliency = np.flip(np.argsort(saliency))
 
@@ -74,26 +77,26 @@ for i in range(0, len(saliency)):
     if saliency[i] in peaks:
         indexes.append(saliency[i])
 
-selected = []
+indexes = indexes[0:nbands]
 
-for i in range(0, len(indexes)):
-    flag = True
-    for j in range(0, len(selected)):
-        if np.abs(indexes[i] - selected[j]) < 5:
-            flag = False
-            break
-    if flag:
-        selected.append(indexes[i])
-        count += 1
-        if count >= nbands:
-            break
+indesex = [0, 74, 75, 135, 140]
 
-selected.sort()
+indexes.sort()
+print(indexes)
 
 temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], nbands))
 
 for nb in range(0, nbands):
-    temp[:, :, :, nb] = train_x[:, :, :, selected[nb]]
+    temp[:, :, :, nb] = train_x[:, :, :, indexes[nb]]
+
+# temp = np.zeros((train_x.shape[0], train_x.shape[1], train_x.shape[2], 5))
+#
+# temp[:, :, :, 0] = train_x[:, :, :,33]
+# temp[:, :, :, 1] = train_x[:, :, :,74]
+# temp[:, :, :, 2] = train_x[:, :, :,97]
+# temp[:, :, :, 3] = train_x[:, :, :,121]
+# temp[:, :, :, 4] = train_x[:, :, :,145]
+
 
 train_x = temp
 
@@ -156,7 +159,7 @@ for train, test in kfold.split(train_x, train_y):
 
     # Compile model
     model = hyper3dnet2(img_shape=(windowSize, windowSize, train_x.shape[3], 1), classes=classes)
-    model.load_weights("weights5-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5")
+    model.load_weights("weights5PLS-hyper3dnet" + data + str(ntrain) + "-best_3layers_4filters.h5")
     model.compile(optimizer='adadelta', loss='binary_crossentropy', metrics=['acc'])
     ypred = model.predict(xtest)
     ypred = ypred.round()
@@ -189,7 +192,7 @@ for train, test in kfold.split(train_x, train_y):
 
     ntrain += 1
 
-file_name = "classification_report_hyper3dnet_5bands_" + dataset + ".txt"
+file_name = "classification_report_hyper3dnet_5bands_" + dataset + "_PLS.txt"
 with open(file_name, 'w') as x_file:
     x_file.write("Overall accuracy%.3f%% (+/- %.3f%%)" % (float(np.mean(cvoa)), float(np.std(cvoa))))
     x_file.write('\n')
@@ -207,11 +210,11 @@ with open(file_name, 'w') as x_file:
 means = np.mean(confmatrices * 100, axis=0)
 stds = np.std(confmatrices * 100, axis=0)
 
-with open('meanshyper3dnet5', 'wb') as f:
+with open('meanshyper3dnet5PLS', 'wb') as f:
     pickle.dump(means, f)
-with open('stdshyper3dnet5', 'wb') as f:
+with open('stdshyper3dnet5PLS', 'wb') as f:
     pickle.dump(stds, f)
-with open('cvf1hyper3dnet5', 'wb') as f:
+with open('cvf1hyper3dnet5PLS', 'wb') as f:
     pickle.dump(cvf1, f)
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -246,13 +249,13 @@ def plot_confusion_matrix(cm, cms, classescf,
             if (cm[i, j] == 100 or cm[i, j] == 0) and cms[i, j] == 0:
                 plt.text(j, i, '{0:.0f}'.format(cm[i, j]) + '\n$\pm$' + '{0:.0f}'.format(cms[i, j]),
                          horizontalalignment="center",
-                         verticalalignment="center", fontsize=15,
+                         verticalalignment="center", fontsize=20,
                          color="white" if cm[i, j] > thresh else "black")
 
             else:
                 plt.text(j, i, '{0:.2f}'.format(cm[i, j]) + '\n$\pm$' + '{0:.2f}'.format(cms[i, j]),
                          horizontalalignment="center",
-                         verticalalignment="center", fontsize=15,
+                         verticalalignment="center", fontsize=20,
                          color="white" if cm[i, j] > thresh else "black")
 
     plt.tight_layout()
@@ -267,20 +270,20 @@ plot_confusion_matrix(means, stds, classescf=classes_list)
 dataset = 'AVOCADO'
 plt.savefig('MatrixConfusion_' + dataset + '_pruned_5bands.png', dpi=1200)
 
-# import pickle
-# with open('t-test/f1WEEDhybridsn', 'rb') as f:
-#     cvf1 = pickle.load(f)
-# with open('t-test/f1WEEDhyper3dnet', 'rb') as f:
-#     cvf2 = pickle.load(f)
-# with open('t-test/f1WEEDspectrum', 'rb') as f:
-#     cvf3 = pickle.load(f)
-# with open('t-test/f1WEEDweedann', 'rb') as f:
-#     cvf4 = pickle.load(f)
-#
-# from scipy import stats
-# df = pd.DataFrame({'Hyper3dNET': cvf2, 'HybridSN': cvf1, 'SpectrumNet': cvf3, 'FC': cvf4})
-# df[['Hyper3dNET', 'HybridSN', 'SpectrumNet', 'FC']].plot(kind='box')
-# print(stats.ttest_rel(df['Hyper3dNET'], df['HybridSN']))
-# print(stats.ttest_rel(df['Hyper3dNET'], df['SpectrumNet']))
-# print(stats.ttest_rel(df['Hyper3dNET'], df['FC']))
-# plt.savefig('Box_' + dataset + '.png', dpi=1200)
+# Box-plot
+with open('t-test/cvf1hyper3dnet5', 'rb') as f:
+    cvf1 = pickle.load(f)
+with open('t-test/cvf1hyper3dnet5_NC_OC_IE', 'rb') as f:
+    cvf2 = pickle.load(f)
+with open('t-test/cvf1hyper3dnet5GA', 'rb') as f:
+    cvf3 = pickle.load(f)
+with open('t-test/cvf1hyper3dnet5PLS', 'rb') as f:
+    cvf4 = pickle.load(f)
+
+df = pd.DataFrame({'SSA': cvf1, 'OCF': cvf2, 'HAGRID': cvf3,
+                   'PLS-DA': cvf4})
+df[['SSA', 'OCF', 'HAGRID', 'PLS-DA']].plot(kind='box')
+print(stats.ttest_rel(df['SSA'], df['OCF']))
+print(stats.ttest_rel(df['SSA'], df['HAGRID']))
+print(stats.ttest_rel(df['SSA'], df['PLS-DA']))
+plt.savefig('Box_' + dataset + '.png', dpi=1200)

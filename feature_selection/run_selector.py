@@ -157,28 +157,30 @@ if __name__ == '__main__':
     # PLS SELECTOR
     wave, ind = run_pls_selector(data, produce, num_waves)
 
-    # # Parameter lists for grid search
-    # crossover_rates = [0.25]
-    # mutation_rates = [0.05]
-    # tourny_sizes = [5]
-    #
-    # # Perform the grid search
-    # for cr in crossover_rates:
-    #     for mr in mutation_rates:
-    #         for ts in tourny_sizes:
-    #
-    #             if not write:
-    #                 print (produce + '-' + str(num_waves) + ': CR, MR, TS', cr, mr, ts)
-    #
-    #             # Run GA wavelength selection
-    #             _, ga_inds, ga_pop_scores = run_ga_selector(produce, num_waves, cr=cr,
-    #                                                         mr=mr, tourny_size=ts)
-    #             ga_pop = np.array(ga_pop_scores[0])
-    #             ga_scores = ga_pop_scores[1]
-    #
-    #             # Write the wavelengths selected by the GA
-    #             if write:
-    #                 ga_out = open('results/selected_wavelengths/' + produce + '_' + str(num_waves) + '_ga.txt', 'w')
-    #                 for i, entry in enumerate(ga_pop):
-    #                     ga_out.write(str(entry) + ',' + str(ga_scores[i]) + '\n')
-    #                 ga_out.close()
+    # HAGRID SELECTOR
+
+    # Parameter lists for grid search
+    crossover_rates = [0.25]
+    mutation_rates = [0.05]
+    tourny_sizes = [5]
+
+    # Perform the grid search
+    for cr in crossover_rates:
+        for mr in mutation_rates:
+            for ts in tourny_sizes:
+
+                if not write:
+                    print (produce + '-' + str(num_waves) + ': CR, MR, TS', cr, mr, ts)
+
+                # Run GA wavelength selection
+                _, ga_inds, ga_pop_scores = run_ga_selector(produce, num_waves, cr=cr,
+                                                            mr=mr, tourny_size=ts)
+                ga_pop = np.array(ga_pop_scores[0])
+                ga_scores = ga_pop_scores[1]
+
+                # Write the wavelengths selected by the GA
+                if write:
+                    ga_out = open('results/selected_wavelengths/' + produce + '_' + str(num_waves) + '_ga.txt', 'w')
+                    for i, entry in enumerate(ga_pop):
+                        ga_out.write(str(entry) + ',' + str(ga_scores[i]) + '\n')
+                    ga_out.close()
