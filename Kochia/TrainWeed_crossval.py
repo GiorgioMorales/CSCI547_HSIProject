@@ -1,5 +1,6 @@
 from keras.callbacks import ModelCheckpoint
 from keras.utils import to_categorical
+from keras.optimizers import Adam
 from sklearn.model_selection import StratifiedKFold
 import numpy as np
 from operator import truediv

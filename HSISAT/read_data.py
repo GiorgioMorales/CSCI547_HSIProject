@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 
 
 def loadata(name):
-    data_path = os.path.join(os.getcwd()[:-12], 'Data')
+    data_path = os.path.join(os.getcwd()[:-6], 'Data')
     if name == 'IP':
         dat = sio.loadmat(os.path.join(data_path, 'Indian_pines_corrected.mat'))['indian_pines_corrected']
         label = sio.loadmat(os.path.join(data_path, 'Indian_pines_gt.mat'))['indian_pines_gt']
@@ -34,11 +34,11 @@ def createImageCubes(Xc, yc, window=5, removeZeroLabels=True):
     margin = int((window - 1) / 2)
     zeroPaddedX = padWithZeros(Xc, margin=margin)
     # split patches
-    patchesData = np.zeros((int(Xc.shape[0] * Xc.shape[1] / 4), window, window, Xc.shape[2]))
-    patchesLabels = np.zeros(int(Xc.shape[0] * Xc.shape[1] / 4))
+    patchesData = np.zeros((Xc.shape[0] * Xc.shape[1], window, window, Xc.shape[2]))
+    patchesLabels = np.zeros((Xc.shape[0] * Xc.shape[1]))
     patchIndex = 0
-    for r in range(margin, zeroPaddedX.shape[0] - margin, 2):
-        for c in range(margin, zeroPaddedX.shape[1] - margin, 2):
+    for r in range(margin, zeroPaddedX.shape[0] - margin):
+        for c in range(margin, zeroPaddedX.shape[1] - margin):
             patch = zeroPaddedX[r - margin:r + margin + 1, c - margin:c + margin + 1]
             patchesData[patchIndex, :, :, :] = patch
             patchesLabels[patchIndex] = yc[r - margin, c - margin]

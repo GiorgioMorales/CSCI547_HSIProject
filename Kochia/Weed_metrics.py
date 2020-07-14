@@ -219,8 +219,10 @@ plt.savefig('MatrixConfusion_' + dataset + 'hyper3dnet_6PLS.png', dpi=1200)
 
 
 # Box-plot
-with open('t-test/cvf1hyper3dnet5', 'rb') as f:
+with open('t-test/cvf1hyper3dnet', 'rb') as f:
     cvf1 = pickle.load(f)
+with open('t-test/cvf1hyper3dnetattention', 'rb') as f:
+    cvf1a = pickle.load(f)
 with open('t-test/cvf1hyper3dnet6_NC_OC_IE', 'rb') as f:
     cvf2 = pickle.load(f)
 with open('t-test/cvf1hyper3dnet6GA', 'rb') as f:
